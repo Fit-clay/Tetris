@@ -1,0 +1,424 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta charset="utf-8" />
+<title>RusBlock</title> 
+<style>
+		body{padding: 0;margin: 10px; }
+		#left{width: 10%; height: 100%;float: left; margin: 5px;}
+		button{font-size: 24px; display:inline-block; margin: 10px;background: burlywood;cursor: pointer; padding: 10px;font-family: "楷体";color: red;}
+		#gameCvs{display: inline;float: left; background: cornsilk;}
+		#right{float: left;width: 10%;height: 100%; float: left;margin: 10px;text-align: center;}
+		#tipCvs{width:200px; height: 300px; background: cornsilk;}
+</style>
+
+<body>
+	<div id="total">
+	<div id="left">
+		<button onclick="begin()">开始</button>
+		<button onclick="end()">结束</button>
+		<button id="pause">暂停</button>
+	</div>
+	<div id="content">
+		<canvas id="gameCvs" width="600px" height="900px"></canvas>
+	</div>
+	<div id="right" >
+		<h2>分数：<span id="score">25</span></h2>
+		<canvas id="tipCvs" ></canvas>
+	</div>
+	</div>
+</body> 
+<script>
+	var nHNumber=20; 	//横向30
+	var nVNumber=30;	//纵向50
+	var nSize=30;		//每格宽高
+	var nMaxCom=7;		//共七个图像
+	var nScore =0;		//游戏分数
+	var isRunning = false;
+	var nCvs=document.getElementById("gameCvs");//获取游戏画布
+	var tipCvs=document.getElementById("tipCvs"); //获取提示画布
+	var score=document.getElementById("score"); //获取显示分数
+	var pause=document.getElementById("pause");
+	var nContext = nCvs.getContext("2d");
+	var tipContext=tipCvs.getContext("2d");
+	nContext.strokeStyle = "rgba(255,0,0,0.5)"
+ 	nContext.globalAlpha = 0.4;
+ 	var mY=0;//图形当前行	
+ 	var mX=nSize*10;    //图形当前列
+	var nowGraRect=[];
+	var downGraArray=[];  //下落图形的集合
+	var down;
+	var typeGrap=["W","U","N","L","J","I","D"];
+	var mRandom=(Math.floor(Math.random()*20)+1)%7;;
+	var nowGraphical=new graphical();
+	
+	pause.onclick=function(){
+		if(isRunning){
+			stop();
+			pause.innerHTML="继续";
+		}else{
+			start();
+			pause.innerHTML="暂停";
+		}
+	}
+	
+	for(var m = 0,lenM = nHNumber; m < lenM;m++){
+		downGraArray[m] = [];
+		for(var t = 0,lenT = nVNumber;t<lenT;t++){
+			downGraArray[m][t] = null;
+		}
+		
+	}
+	
+	//绘制方格背景
+	function square(){
+		nContext.beginPath();
+
+ 		var index=0;
+    	while(index<nSize*nVNumber){
+	 		nContext.lineWidth = 1;//设置线宽
+    		nContext.moveTo(index,0);
+    		nContext.lineTo(index,nSize*nVNumber);
+    		nContext.moveTo(0,index);
+    		nContext.lineTo(nSize*nHNumber,index);
+			index+=nSize;
+    	}
+    	
+			tipContext.clearRect(0,0,nSize*nHNumber,nSize*nVNumber);
+			
+			var tipRect= new graphical().drowGraphical(typeGrap[mRandom]);
+			
+			
+			for(var i=0;i<tipRect.length;i++){
+        			tipContext.fillRect(tipRect[i].pointX/2,tipRect[i].pointY/2,nSize,nSize);
+        			}
+		
+    	 nContext.stroke();
+    	 nContext.closePath();
+		
+    	 var downX,downY;
+    	for(downX=0;downX<downGraArray.length;downX++){
+    		for(downY=0;downY<downGraArray[downX].length;downY++){
+    			if(downGraArray[downX][downY]!=null){
+    				 nContext.fillRect(downGraArray[downX][downY].pointX,downGraArray[downX][downY].pointY,nSize,nSize);
+    			}
+    		
+    	}
+    	}
+    	 
+	}   
+
+	//平移
+    function leftTransltion(tranWidth){
+
+		if(isTransltion(nowGraRect,tranWidth)){
+    		nContext.clearRect(0,0,nSize*nHNumber,nSize*nVNumber);
+    	 	square();
+    		if(nowGraRect.length>0){
+        			for(var i=0;i<nowGraRect.length;i++){
+        				nowGraRect[i].pointX=nowGraRect[i].pointX+tranWidth;
+        			}
+        	}
+    		nowGraphical.runRect();
+    		
+    	}
+    }
+    function start(){
+    	nowGraphical.drowStart();
+    	isRunning=true;
+    }
+        function stop(){
+    	nowGraphical.pause();
+    	isRunning=false;
+    }
+	function end(){
+		location.href="#";
+		location.reload();
+
+	}
+	function begin(){
+		location.href="#TT";
+		location.reload();
+		
+	}
+     var ie;
+     var firefox;
+     if (document.all) ie = true; else ie = false; //判断是否IE
+     document.onkeydown = KeyPress;
+    //设置键盘事件函数
+     function KeyPress(){
+      var key;
+	       if (ie) key = event.keyCode;
+	      else
+	       key = KeyPress.arguments[0].keyCode;
+	       if(key==37){
+	       	leftTransltion(-nSize);
+	       }
+	       else if(key==38){
+	       	 rotate();
+	       }
+	       else if(key==39){
+	       	 leftTransltion(nSize);
+	       }
+	       else if(key==40){
+	       	 nowGraphical.downRect();
+	       }
+      }
+		//图像旋转
+	    function rotate(){
+	    	var tmpBlock=[];
+	    	var mRect;
+	    	if(nowGraRect.length>0){
+	    	for(var k=0;k<nowGraRect.length;k++){
+	    		mRect=new rect(nowGraRect[k].pointX,nowGraRect[k].pointY);
+	    		tmpBlock[k]=mRect;
+	    	}
+            //先算四个点的中心点，则这四个点围绕中心旋转90度。    
+            var cx = Math.round((tmpBlock[0].pointX + tmpBlock[1].pointX + tmpBlock[2].pointX + tmpBlock[3].pointX)/(4*nSize));      
+            var cy = Math.round((tmpBlock[0].pointY + tmpBlock[1].pointY + tmpBlock[2].pointY+ tmpBlock[3].pointY)/(4*nSize));      
+          
+  				for(var i=0;i<tmpBlock.length;i++ ){
+                tmpBlock[i].pointX = (cx+cy-nowGraRect[i].pointY/nSize)*nSize;     
+                tmpBlock[i].pointY = (cy-cx+nowGraRect[i].pointX/nSize)*nSize;
+        		}
+            //检查旋转后方格是否合法.  
+            if(isTransltion(tmpBlock,"-1")&&isTransltion(tmpBlock,"1")&&compareBelow(tmpBlock)){
+            	 nowGraRect=tmpBlock;
+            	}	
+           }
+	    }
+	    function graphical(){
+    	
+        	//绘制图像
+        	this.drowGraphical=function(graType){
+        		var tomperaryRect=[];
+        		var one;
+		    	var two;
+		    	var three;
+		    	var four;
+        		switch(graType){ 
+    		case "W":
+		    	 one=new rect(mX,mY);
+		    	 two=new rect(mX-nSize,mY+nSize);
+		    	 three=new rect(mX,mY+nSize);
+		    	 four=new rect(mX+nSize,mY+nSize);
+    			break;
+    		case "D":    	
+    		 	 one=new rect(mX-nSize,mY);
+		    	 two=new rect(mX,mY);
+		    	 three=new rect(mX-nSize,mY+nSize);
+		    	 four=new rect(mX,mY+nSize);
+
+    			break;
+    		case "N":
+    		
+    		     one=new rect(mX+nSize,mY);
+		    	 two=new rect(mX+nSize,mY+nSize);
+		    	 three=new rect(mX,mY+nSize);
+		    	 four=new rect(mX,mY+2*nSize);
+    			break;
+    		case "U":
+    		
+    		     one=new rect(mX,mY);
+		    	 two=new rect(mX,mY+nSize);
+		    	 three=new rect(mX+nSize,mY+nSize);
+		    	 four=new rect(mX+nSize,mY+2*nSize);
+
+    			break;
+    	    case "L":
+    	   
+    		     one=new rect(mX,mY);
+		    	 two=new rect(mX,mY+nSize);
+		    	 three=new rect(mX,mY+2*nSize);
+		    	 four=new rect(mX+nSize,mY+2*nSize);
+    			break;
+    		case "J":
+    		 
+    		     one=new rect(mX,mY);
+		    	 two=new rect(mX,mY+nSize);
+		    	 three=new rect(mX,mY+2*nSize);
+		    	 four=new rect(mX-nSize,mY+2*nSize);
+    			break;
+    		case "I":
+    		  	 one=new rect(mX,mY);
+		    	 two=new rect(mX,mY+nSize);
+		    	 three=new rect(mX,mY+2*nSize);
+		    	 four=new rect(mX,mY+3*nSize);
+
+    			break;
+			}
+        			    	
+        		tomperaryRect[0]=one;
+		    	tomperaryRect[1]=two;
+		    	tomperaryRect[2]=three;
+		    	tomperaryRect[3]=four;
+		    	return tomperaryRect;
+
+        	}
+			//运行时绘制图像
+        	this.runRect=function(){
+        		if(nowGraRect.length>0){
+        			for(var i=0;i<nowGraRect.length;i++){
+        				 nContext.fillRect(nowGraRect[i].pointX,nowGraRect[i].pointY,nSize,nSize);
+        			}
+        		}
+        		else{
+        			nowGraRect=nowGraphical.drowGraphical(typeGrap[mRandom]);
+        			mRandom=(Math.floor(Math.random()*20)+1)%7;
+//      			nowGraphical.drowGraphical("I");
+
+        		}
+        	}
+         this.drowStart=function(){
+				down=window.setInterval(function(){
+					if(null != nowGraphical)nowGraphical.downRect()
+				}, 200);
+			
+        	}
+		 this.drowStop=function(){
+		 		for(var i=0;i<nowGraRect.length;i++){
+    	 			var nRect=nowGraRect[i];
+    	 			downGraArray[nRect.pointX/nSize][nRect.pointY/nSize]=nRect;
+    	 		}
+		 	 nowGraphical = null;
+		 	 nowGraRect=[];
+			 window.clearInterval(down);
+		}
+		 this.pause=function(){//pause/continue
+		 	 window.clearInterval(down);
+		 }
+        	    //绘制下降事件
+   		  this.downRect=function(){
+   		  
+   		  if(!compareBelow(nowGraRect)){
+  			nowGraphical.drowStop();
+  			deleteRow();
+	 		//下降到底部时出现第二个控件
+	 		mX=10*nSize;
+	 		mY=0;
+	 		nowGraphical=new  graphical("J");
+	 		nowGraphical.drowStart();
+   		  }
+    	 	else{
+				if(nowGraRect.length>0){
+        			for(var i=0;i<nowGraRect.length;i++){
+        				nowGraRect[i].pointY=nowGraRect[i].pointY+nSize;
+        			}
+        	}
+
+    	 		nContext.clearRect(0,0,nSize*nHNumber,nSize*nVNumber);
+    	 		square();
+    	 		nowGraphical.runRect();
+    	 	}
+    	 	
+   		  }
+           	
+    }
+     function rect(indexX,indexY){
+     	this.pointX=indexX; 
+     	this.pointY=indexY;
+     }
+    //判断是否可下落
+    function compareBelow(rectArray){
+    	var blowY=0;
+    		for(var j=0;j<rectArray.length;j++){
+		    		if(downGraArray[rectArray[j].pointX/nSize][rectArray[j].pointY/nSize+1] != null){
+		    				return false;
+		    		}
+		    		 if(rectArray[j].pointY>blowY){
+		    			blowY=rectArray[j].pointY;
+		    		}
+		    	}
+    		if(blowY>=nSize*(nVNumber-1)){
+    			return false;
+    		}
+    		else{
+    			return true;
+    		}		
+    }
+    
+        function isTransltion(rectArray,typeTransl){
+    	var leftX=10*nSize;
+    	var rightX=0;
+    		for(var j=0;j<rectArray.length;j++){
+    			if(rectArray[j].pointX/nSize>nHNumber-1||rectArray[j].pointY/nSize>nVNumber-1){
+    				return false;
+    			}
+		    		if(downGraArray[rectArray[j].pointX/nSize][rectArray[j].pointY/nSize+1] != null){
+		    				return false;
+		    		}
+		    		 if(rectArray[j].pointX<leftX){
+		    			leftX=rectArray[j].pointX;
+		    		}
+		    		 if(rectArray[j].pointX>rightX){
+		    			rightX=rectArray[j].pointX;
+		    		} 
+		    	}
+    		if(typeTransl<0){
+    			if(leftX<=0){
+    			return false;
+    		}
+    		}
+    		if(typeTransl>0){
+    			if(rightX>=(nHNumber-1)*nSize){
+    			return false;
+    				}
+    		}
+    	
+    			return true;
+  		
+    }
+    
+    //是否可以消除
+    var lines=0//记录消除行数
+    function deleteRow(){
+    	 var deleteX,deleteY;
+    	 
+    	 var noClear=false;
+    	for(deleteY=0;deleteY<nVNumber;deleteY++){
+    		var isDelete=true;
+    		for(deleteX=0;deleteX<nHNumber;deleteX++){
+    			if(downGraArray[deleteX][deleteY]==null){
+    				isDelete=false;
+    				break;
+    			}
+    		}
+    		if(isDelete){
+    			 noClear=true;
+    			for(var r=0;r<nHNumber;r++){
+    			downGraArray[r][deleteY]=null;
+    			}
+    			for(var dY=deleteY-1;dY>0;dY--){
+	    			for(var dX=0;dX<nHNumber;dX++){
+		    				if(downGraArray[dX][dY]!=null){
+		    					downGraArray[dX][dY].pointY=downGraArray[dX][dY].pointY+nSize;
+		    					downGraArray[dX][dY+1]=downGraArray[dX][dY];
+		    					downGraArray[dX][dY]=null;
+		    				}
+	    			}
+
+    			}
+    			break;
+    		}
+    		
+    	}
+    	if(noClear){
+    		lines=lines+1;
+    		deleteRow();
+    	}else{
+    		nScore=nScore+5*lines*lines;
+    		
+    		score.innerHTML=nScore;
+    		lines=0;
+    	}
+    }
+
+    window.onload=function(){
+    	var hash=location.hash;
+    	if(hash){
+    	start();	
+    	}
+    	
+    }
+</script>
+</html> 
